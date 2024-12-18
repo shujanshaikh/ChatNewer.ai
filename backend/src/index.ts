@@ -1,9 +1,9 @@
 import express, { response } from "express"
+import { MODIFICATIONS_TAG_NAME, WORK_DIR, allowedHTMLElements } from './constants';
 import Together from 'together-ai';
 import { basePrompt as reactBasePrompt } from "./defaults/react";
 import { basePrompt as nodeBasePrompt } from "./defaults/node";
 import { BASE_PROMPT, getSystemPrompt } from "./prompts";
-import { Chat } from "together-ai/resources";
 require('dotenv').config()
 
 const app = express();
@@ -59,31 +59,28 @@ app.post("/template" ,async (req , res) =>{
 app.post("/chat", async(req, res)=> {
 
   let fullResponse = "";
+  const systemPrompt = getSystemPrompt();
   const messages = req.body.messages;
   const response = await client.chat.completions.create({
     model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
-    messages: [{
-      role: "system" ,
-      content: getSystemPrompt(),
-    }, {
-      role: "user" ,
-      content: messages
-    }],
-    stream: true,
-    temperature: 1,
-    max_tokens: 5000,
+  messages: [
+    { role: "system", content: systemPrompt },
+    ...messages 
+],
+     stream: true,
+    temperature: 0.7,
+    max_tokens: 8000,
 });
   
-  for await (const chunk of response) {
-    if (chunk.choices[0]?.delta?.content) {
-        fullResponse += chunk.choices[0].delta.content;
-    }
+for await (const chunk of response) {
+  if (chunk.choices[0]?.delta?.content) {
+      fullResponse += chunk.choices[0].delta.content;
+  }
 }
-  const finalOutput = fullResponse.toString()
-  console.log(finalOutput)
-
+const finalOutput = fullResponse.toString()
+console.log(finalOutput)
   res.json({
-    response: finalOutput
+    response: response
   })
 })
 
